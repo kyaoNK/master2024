@@ -8,6 +8,8 @@ services:
       - type: bind
         source: ./apps
         target: /workspace
+    ports:
+      - "5006:5006"
     deploy:
       resources:
         reservations:
