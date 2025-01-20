@@ -1,32 +1,30 @@
 import networkx as nx
 
-def find_node_by_label(G, label):
+def find_node_by_text_id(G, text_id):
     for node, attr in G.nodes(data=True):
-        # print(f"node: {node}, label: {attr.get('label')}")  # デバッグ用出力
-        if attr.get('label') == label:
+        print(f"node: {node} - label: {attr.get('label')}")  # デバッグ用出力
+        if attr.get("label") == text_id:
             return node
     return None
     
-def find_max_weight_path(G, start_label, end_label):    
-    start_node = find_node_by_label(G, start_label)
+def find_max_weight_path(G, start_text_id, end_text_id):    
+    start_node = find_node_by_text_id(G, start_text_id)
     print(f"始点ノード: {start_node}")
-    print(f"始点ノードの属性: {G.nodes[start_node] if start_node in G else 'なし'}")
     
-    end_node = find_node_by_label(G, end_label)
+    end_node = find_node_by_text_id(G, end_text_id)
     print(f"終点ノード: {end_node}")
-    print(f"終点ノードの属性: {G.nodes[end_node] if end_node in G else 'なし'}")
     
     if start_node is None:
-        print(f"始点ラベル '{start_label}' に対応するノードが見つかりません。")
+        print(f"始点テキストID: '{start_text_id}' に対応するノードが見つかりません。")
     if end_node is None:
-        print(f"終点ラベル '{end_label}' に対応するノードが見つかりません。")
+        print(f"終点テキストID: '{end_text_id}' に対応するノードが見つかりません。")
     if start_node is None or end_node is None:
         return None, 0
         
     G_temp = G.copy()
     
     for u, v, w in G_temp.edges(data='weight'):
-        G_temp[u][v]['weight'] = -w
+        G_temp[u][v]['weight'] = 1 - w
         
     try:
         paths = list(nx.shortest_simple_paths(G_temp, start_node, end_node, weight='weight'))
@@ -49,13 +47,13 @@ def find_max_weight_path(G, start_label, end_label):
     
 if __name__=='__main__':
     G = nx.DiGraph()
-    G.add_node(1, label='A')
-    G.add_node(2, label='B')
-    G.add_node(3, label='C')
+    G.add_node(1)
+    G.add_node(2)
+    G.add_node(3)
     G.add_edge(1, 2, weight=5)
     G.add_edge(2, 3, weight=3)
 
-    path, weight = find_max_weight_path(G, 'A', 'C')
+    path, weight = find_max_weight_path(G, 1, 2)
     
     print(f"見つかったパス: {path}")
     print(f"合計重み: {weight}")
