@@ -1,25 +1,27 @@
+import matplotlib.pyplot as plt
 import networkx as nx
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 import itertools
 
-def included_techinal_term(text, technical_terms):
+def included_technical_term(text, technical_terms):
     included_techinal_terms = list()
     if not text:
         return included_techinal_terms
 
     text = text.lower()
-
-    for term in technical_terms:
-        term = term.lower()
-        try:
-            if term in text:
-                included_techinal_terms.append(term)
-        except TypeError as e:
-            print(f"Error processing term '{term}': {e}")
-            continue
+    for term_group in technical_terms:
+        variants = term_group.split('|')
+        for term in variants:
+            term = term.lower()    
+            try:
+                if term in text:
+                    included_techinal_terms.append(term_group)
+                    break
+            except TypeError as e:
+                print(f"Error processing term '{term}': {e}")
+                continue
         
     return included_techinal_terms
 
@@ -38,8 +40,8 @@ def jaccard_coefficient_term(text1, text2, technical_terms):
     return result
 
 def calculate_jaccard(text1, text2, technical_terms):
-    terms1 = included_techinal_term(text1, technical_terms)
-    terms2 = included_techinal_term(text2, technical_terms)
+    terms1 = included_technical_term(text1, technical_terms)
+    terms2 = included_technical_term(text2, technical_terms)
 
     s1 = set(terms1)
     s2 = set(terms2)
@@ -67,24 +69,14 @@ def compute_edge(args):
     
 def graph_ave_jaccard_parallel(materials, technical_terms):
     G = nx.Graph()
-    
+
     for node_id, data in materials.items():
         G.add_node(node_id, label=node_id, text=data.get("text"))
-    
+
     nodes = list(materials.keys())
-    
+
     edge_args = [(u, w, materials[u]["text"], materials[w]["text"], technical_terms) for i, u in enumerate(nodes) for w in nodes[i+1:]]
 
-    # total = len(nodes)
-    # with tqdm(total=total * (total-1) // 2) as pbar:
-    #     for i, u in enumerate(nodes):
-    #         for w in nodes[i+1:]:
-    #             # 計算
-    #             weight = jaccard_coefficient_term(materials.get(u).get("text"), materials.get(w).get("text"), technical_terms)
-    #             if weight > 0.0:
-    #                 G.add_edge(u, w, weight=weight)
-    #             pbar.update(1)
-                
     with ProcessPoolExecutor() as executor:
         for result in tqdm(executor.map(compute_edge, edge_args), total=len(edge_args)):
             if result:
@@ -94,10 +86,10 @@ def graph_ave_jaccard_parallel(materials, technical_terms):
     print("\n最初に構築したグラフの基本情報:")
     print(f"ノード数: {G.number_of_nodes()}")
     print(f"エッジ数: {G.number_of_edges()}")
-    
+
     isolated_nodes = list(nx.isolates(G))
     G.remove_nodes_from(isolated_nodes)
-    
+
     print(f"\n孤立したノード: {isolated_nodes}")
     print("\n削除後のグラフの基本情報:")
     print(f"ノード数: {G.number_of_nodes()}")
@@ -138,7 +130,7 @@ def graph_ave_jaccard_parallel(materials, technical_terms):
     
     return G_ave
     
-def graph_remove_outliers_jaccard(materials, technical_terms):
+def graph_remove_outliers_jaccard_parallel(materials, technical_terms):
     
     def filter_edges_by_percentile(G, lower_percentile=5, upper_percentile=95):
         weights = [data['weight'] for _, _, data in G.edges(data=True)]
@@ -157,22 +149,19 @@ def graph_remove_outliers_jaccard(materials, technical_terms):
         return filtered_G
     
     G = nx.Graph()
+    for node_id, data in materials.items():
+        G.add_node(node_id, label=node_id, text=data.get("text"))
+        
     nodes = list(materials.keys())
     
-    for node_id, data in materials.items():
-        G.add_node(node_id, 
-                  label=node_id,
-                  text=data.get("text"))
+    edge_args = [(u, w, materials[u]["text"], materials[w]["text"], technical_terms) for i, u in enumerate(nodes) for w in nodes[i+1:]]
     
-    total = len(nodes)
-    with tqdm(total=total * (total-1) // 2) as pbar:
-        for i, u in enumerate(nodes):
-            for w in nodes[i+1:]:
-                weight = jaccard_coefficient_term(materials.get(u).get("text"), materials.get(w).get("text"), technical_terms)
-                if weight > 0.0:
-                    G.add_edge(u, w, weight=weight)
-                pbar.update(1)
-                
+    with ProcessPoolExecutor() as executor:
+        for result in tqdm(executor.map(compute_edge, edge_args), total=len(edge_args)):
+            if result:
+                u, w, weight = result
+                G.add_edge(u, w, weight=weight)
+
     print("\n最初に構築したグラフの基本情報:")
     print(f"ノード数: {G.number_of_nodes()}")
     print(f"エッジ数: {G.number_of_edges()}")
@@ -180,10 +169,12 @@ def graph_remove_outliers_jaccard(materials, technical_terms):
     isolated_nodes = list(nx.isolates(G))
     G.remove_nodes_from(isolated_nodes)
     
-    print(f"\n孤立したノード: {isolated_nodes}")
-    print("\n削除後のグラフの基本情報:")
-    print(f"ノード数: {G.number_of_nodes()}")
-    print(f"エッジ数: {G.number_of_edges()}")
+    # ----- debug ----- #
+    # print(f"\n孤立したノード: {isolated_nodes}")
+    # print("\n削除後のグラフの基本情報:")
+    # print(f"ノード数: {G.number_of_nodes()}")
+    # print(f"エッジ数: {G.number_of_edges()}")
+    # ----- debug ----- #
     
     weights = [data['weight'] for u, v, data in G.edges(data=True)]
     print(f"エッジの重みの範囲: {min(weights):.3f} - {max(weights):.3f}")
@@ -195,13 +186,37 @@ def graph_remove_outliers_jaccard(materials, technical_terms):
     isolated_nodes = list(nx.isolates(G_filtered))
     G_filtered.remove_nodes_from(isolated_nodes)
     
-    print(f"\n削除したノード: {isolated_nodes}")
-    print("\n上下5%削除後のグラフの基本情報:")
-    print(f"ノード数: {G.number_of_nodes()}")
-    print(f"エッジ数: {G.number_of_edges()}")
+    # ----- debug ----- #
+    # print(f"\n削除したノード: {isolated_nodes}")
+    # print("\n上下5%削除後のグラフの基本情報:")
+    # print(f"ノード数: {G.number_of_nodes()}")
+    # print(f"エッジ数: {G.number_of_edges()}")
+    # ----- debug ----- #
     
     plt.figure(figsize=(10,6))
     nx.draw(G_filtered, with_labels=True)
     plt.savefig("out/jaccard_remove_outliers_graph.png")
     nx.write_gml(G_filtered, "out/jaccard_remove_outliers_graph.gml")
     plt.close()
+    
+    return G_filtered
+
+if __name__=="__main__":
+    text = "ETCシステムを利用して..."
+    terms = ["ETC|ETCシステム|自動料金収受システム"]
+    result = included_technical_term(text, terms)
+    print(result)
+    # 結果: ['ETC|ETCシステム|自動料金収受システム']
+    
+    
+    
+    terms1 = ["ETC|ETCシステム|自動料金収受システム", "トップダウンテスト", "トリプルメディア"]
+    terms2 = ["ETC|ETCシステム|自動料金収受システム"]
+    
+    s1 = set(terms1)
+    s2 = set(terms2)
+    
+    try:
+        print(float(len(s1.intersection(s2)) / len(s1.union(s2))))
+    except ZeroDivisionError:
+        print("ゼロで割っている")

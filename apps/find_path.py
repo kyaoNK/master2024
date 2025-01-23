@@ -2,7 +2,7 @@ import networkx as nx
 
 def find_node_by_text_id(G, text_id):
     for node, attr in G.nodes(data=True):
-        print(f"node: {node} - label: {attr.get('label')}")  # デバッグ用出力
+        # print(f"node: {node} - label: {attr.get('label')}")  # デバッグ用出力
         if attr.get("label") == text_id:
             return node
     return None
@@ -21,28 +21,23 @@ def find_max_weight_path(G, start_text_id, end_text_id):
     if start_node is None or end_node is None:
         return None, 0
         
-    G_temp = G.copy()
-    
-    for u, v, w in G_temp.edges(data='weight'):
-        G_temp[u][v]['weight'] = 1 - w
-        
     try:
-        paths = list(nx.shortest_simple_paths(G_temp, start_node, end_node, weight='weight'))
-        if not paths:
-            return None, 0
-        path = paths[0]
-        
+        path = nx.dijkstra_path(G, start_node, end_node, weight=lambda u, v, d: 1 - d['weight'] if d['weight'] > 0 else float('inf'))
+
         total_weight = sum(G[path[i]][path[i+1]]['weight'] for i in range(len(path)-1))
-    
+
         # パスに含まれるノードの情報も出力
         print("\nパス上のノードの属性:")
         for node in path:
             print(f"ノード {node}: {G.nodes[node]}")
-    
+
         return path, total_weight
     
     except nx.NetworkXNoPath:
         print("パスが見つかりませんでした")
+        return None, 0
+    except ZeroDivisionError:
+        print("重みが0のエッジが存在します")
         return None, 0
     
 if __name__=='__main__':
