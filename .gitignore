@@ -1,3 +1,5 @@
 /apps/lib/
 
-/apps/unuse
+/apps/unuse/
+
+/apps/embedding_cache.json

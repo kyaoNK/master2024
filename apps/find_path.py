@@ -41,14 +41,40 @@ def find_max_weight_path(G, start_text_id, end_text_id):
         return None, 0
     
 if __name__=='__main__':
-    G = nx.DiGraph()
-    G.add_node(1)
-    G.add_node(2)
-    G.add_node(3)
-    G.add_edge(1, 2, weight=5)
-    G.add_edge(2, 3, weight=3)
+    # テスト用の無向グラフを作成
+    G = nx.Graph()
 
-    path, weight = find_max_weight_path(G, 1, 2)
-    
-    print(f"見つかったパス: {path}")
+    # ノードを追加
+    nodes = [
+    (1, {"label": "A"}),
+    (2, {"label": "B"}), 
+    (3, {"label": "C"}),
+    (4, {"label": "D"}),
+    (5, {"label": "E"}),
+    (6, {"label": "F"})
+    ]
+    G.add_nodes_from(nodes)
+
+    # エッジを追加（複数のパスが存在するように）
+    edges = [
+        (1, 2, {"weight": 0.7}),
+        (2, 3, {"weight": 0.8}),
+        (3, 4, {"weight": 0.6}),
+        (4, 5, {"weight": 0.9}),
+        (5, 6, {"weight": 0.7}),
+        (1, 3, {"weight": 0.5}),
+        (2, 4, {"weight": 0.4}),
+        (3, 5, {"weight": 0.8}),
+        (4, 6, {"weight": 0.6}),
+        (1, 4, {"weight": 0.3})
+    ]
+    G.add_edges_from(edges)
+
+    # テスト実行
+    path, weight = find_max_weight_path(G, "B", "E")
+    print(f"パス: {path}")
     print(f"合計重み: {weight}")
+
+    # 存在しないノードのテスト
+    path, weight = find_max_weight_path(G, "X", "C")
+    print(f"存在しないノードのテスト - パス: {path}, 重み: {weight}")
