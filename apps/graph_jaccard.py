@@ -109,7 +109,7 @@ def graph_ave_jaccard_parallel(materials, technical_terms):
     plt.xlabel('Weight')
     plt.ylabel('Frequency')
     plt.title('Distribution of Weights')
-    plt.savefig("out/distribution_of_weights.png", format="png")
+    plt.savefig("out/jaccard_edge_weights_distribution.png", format="png")
     plt.close()
         
     threshold = average_weight

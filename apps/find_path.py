@@ -7,7 +7,7 @@ def find_node_by_text_id(G, text_id):
             return node
     return None
     
-def find_max_weight_path(G, start_text_id, end_text_id):    
+def find_max_weight_path_in_jaccard(G, start_text_id, end_text_id):    
     start_node = find_node_by_text_id(G, start_text_id)
     print(f"始点ノード: {start_node}")
     
@@ -23,6 +23,73 @@ def find_max_weight_path(G, start_text_id, end_text_id):
         
     try:
         path = nx.dijkstra_path(G, start_node, end_node, weight=lambda u, v, d: 1 - d['weight'] if d['weight'] > 0 else float('inf'))
+
+        total_weight = sum(G[path[i]][path[i+1]]['weight'] for i in range(len(path)-1))
+
+        # パスに含まれるノードの情報も出力
+        print("\nパス上のノードの属性:")
+        for node in path:
+            print(f"ノード {node}: {G.nodes[node]}")
+
+        return path, total_weight
+    
+    except nx.NetworkXNoPath:
+        print("パスが見つかりませんでした")
+        return None, 0
+    except ZeroDivisionError:
+        print("重みが0のエッジが存在します")
+        return None, 0
+
+
+def find_max_weight_path_in_tfidf(G, start_text_id, end_text_id):    
+    start_node = find_node_by_text_id(G, start_text_id)
+    print(f"始点ノード: {start_node}")
+    
+    end_node = find_node_by_text_id(G, end_text_id)
+    print(f"終点ノード: {end_node}")
+    
+    if start_node is None:
+        print(f"始点テキストID: '{start_text_id}' に対応するノードが見つかりません。")
+    if end_node is None:
+        print(f"終点テキストID: '{end_text_id}' に対応するノードが見つかりません。")
+    if start_node is None or end_node is None:
+        return None, 0
+        
+    try:
+        path = nx.dijkstra_path(G, start_node, end_node, weight=lambda u, v, d: 1 - d['weight'] / 2 if d['weight'] > 0 else float('inf'))
+
+        total_weight = sum(G[path[i]][path[i+1]]['weight'] for i in range(len(path)-1))
+
+        # パスに含まれるノードの情報も出力
+        print("\nパス上のノードの属性:")
+        for node in path:
+            print(f"ノード {node}: {G.nodes[node]}")
+
+        return path, total_weight
+    
+    except nx.NetworkXNoPath:
+        print("パスが見つかりませんでした")
+        return None, 0
+    except ZeroDivisionError:
+        print("重みが0のエッジが存在します")
+        return None, 0    
+
+def find_max_weight_path_in_embedding(G, start_text_id, end_text_id):    
+    start_node = find_node_by_text_id(G, start_text_id)
+    print(f"始点ノード: {start_node}")
+    
+    end_node = find_node_by_text_id(G, end_text_id)
+    print(f"終点ノード: {end_node}")
+    
+    if start_node is None:
+        print(f"始点テキストID: '{start_text_id}' に対応するノードが見つかりません。")
+    if end_node is None:
+        print(f"終点テキストID: '{end_text_id}' に対応するノードが見つかりません。")
+    if start_node is None or end_node is None:
+        return None, 0
+        
+    try:
+        path = nx.dijkstra_path(G, start_node, end_node, weight=lambda u, v, d: 1 - d['weight'] / 2 if d['weight'] > 0 else float('inf'))
 
         total_weight = sum(G[path[i]][path[i+1]]['weight'] for i in range(len(path)-1))
 
@@ -71,10 +138,10 @@ if __name__=='__main__':
     G.add_edges_from(edges)
 
     # テスト実行
-    path, weight = find_max_weight_path(G, "B", "E")
+    path, weight = find_max_weight_path_in_jaccard(G, "B", "E")
     print(f"パス: {path}")
     print(f"合計重み: {weight}")
 
     # 存在しないノードのテスト
-    path, weight = find_max_weight_path(G, "X", "C")
+    path, weight = find_max_weight_path_in_jaccard(G, "X", "C")
     print(f"存在しないノードのテスト - パス: {path}, 重み: {weight}")
